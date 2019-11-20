@@ -1,3 +1,8 @@
+# Dataset
+./dataset/*
+./wiki\-urls/*
+./wiki\-pages/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
