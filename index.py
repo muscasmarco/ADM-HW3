@@ -24,24 +24,24 @@ for index in range(10000):
     terms.extend(preprocess(dataset_raw['plot'][index]))
     
     # Comment from here
-    '''
-    terms.extend(preprocess(dataset_raw['film_name'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['director'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['producer'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['writer'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['starring'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['music'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['release_date'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['runtime'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['country'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['language'][index], stop_words))
-    terms.extend(preprocess(dataset_raw['budget'][index], stop_words))
-    '''
+    
+    terms.extend(preprocess(dataset_raw['film_name'][index]))
+    terms.extend(preprocess(dataset_raw['director'][index]))
+    terms.extend(preprocess(dataset_raw['producer'][index]))
+    terms.extend(preprocess(dataset_raw['writer'][index]))
+    terms.extend(preprocess(dataset_raw['starring'][index]))
+    terms.extend(preprocess(dataset_raw['music'][index]))
+    terms.extend(preprocess(dataset_raw['release_date'][index]))
+    terms.extend(preprocess(dataset_raw['runtime'][index]))
+    terms.extend(preprocess(dataset_raw['country'][index]))
+    terms.extend(preprocess(dataset_raw['language'][index]))
+    terms.extend(preprocess(dataset_raw['budget'][index]))
+    
     # To here to get the title-intro-plot dictionaries
     
     
     # Removing duplicates
-    terms = list(dict.fromkeys(terms))
+    #terms = list(dict.fromkeys(terms))
     for term in terms:
         if term != 'NA' or term != 'na':
             if term not in inverted_index_tmp.keys():
@@ -66,7 +66,7 @@ vocabulary_ds = pd.DataFrame(columns=['term_id','term'])
 for vocab_id in range(len(vocabulary)):
     print(vocab_id/len(vocabulary) * 100, '%')
     vocabulary_ds = vocabulary_ds.append(pd.DataFrame([vocabulary[vocab_id]], columns=['term_id', 'term']), ignore_index=True)
-vocabulary_ds.to_csv(path_or_buf='./dataset/term_dictionary_intro_plot.csv', sep='\t', na_rep='NA')
+vocabulary_ds.to_csv(path_or_buf='./dataset/term_dictionary.csv', sep='\t', na_rep='NA')
 
 # Making inverted index into a DataFrame so it can be easily saved
 inverted_index_ds = pd.DataFrame(columns=['term_id','document_id'])
@@ -78,7 +78,7 @@ for i in range(len(inverted_index)):
 
 dataset_csv_separator = '\t' # Separator between columns in the file
 dataset_csv_na_rep = 'NA' # Default null value representation
-dataset_csv_path = './dataset/inverted_index_intro_plot .csv'
+dataset_csv_path = './dataset/inverted_index.csv'
 inverted_index_ds.to_csv(path_or_buf=dataset_csv_path, sep=dataset_csv_separator, na_rep=dataset_csv_na_rep)    
 print('Done.')    
 
