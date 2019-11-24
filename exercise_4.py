@@ -16,10 +16,14 @@ Created on Sun Nov 24 01:16:07 2019
     At the end of each turn, it checks for a match and the position of the cursors are reset.
 '''
 
+''' Side note: in the case of a string like SAPIENZA the result is 3: 
+    even though there's only one match (the two As), each character BETWEEN
+    the As, if considered by itself, allows for a palindrome substring such
+    as APA, AIA, AEA, ... etc.  '''
 
 
 #instr = 'DATAMININGSAPIENZA'
-instr = str('Inserire stringa: ')
+instr = str(input('Inserire stringa: '))
 if len(instr) < 2:
     
     ans = len(instr)
