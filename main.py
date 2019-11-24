@@ -8,9 +8,7 @@ Created on Wed Nov 20 20:31:02 2019
 from index_utils import preprocess
 import pandas as pd
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from numpy.linalg import norm
-
+import heapq
 def use_search_engine_one():
     
     print('Loading datasets...')
@@ -21,8 +19,10 @@ def use_search_engine_one():
     
     query = input("Insert your query: ")
     
-    query_terms = preprocess(query)
+    query_terms = preprocess(query) # The query has to be preprocessed each time
     vocab_ids = []
+    
+    # Get the term ids for the words in the query using the dictionary file.
     for query_term in query_terms:
         term_ids_res = vocabulary.term_id[vocabulary.term == query_term]
         
@@ -142,27 +142,164 @@ def use_search_engine_two():
     query_terms = preprocess(str(input('Insert your query: ')))
     scores = compute_cosine_similarities(query_terms)
     
-    for score in scores[:10]:
+    for score in scores[:10]: # They are already sorted, change the 10 if you want more results
         doc_id = score[0]
         
         title = film_ds.title[film_ds.index == doc_id].values[0]
+        intro = film_ds.intro[film_ds.index == doc_id].values[0]
         director = film_ds.director[film_ds.index == doc_id].values[0]
-        print(doc_id,' ', title, ' ', director)
+
+        if str(intro) == 'nan':
+            intro = 'No intro available'
+        if str(director) == 'nan':
+            intro = 'No director info available'
+        
+        
+        print('---------------------------------------')
+        print(title)
+        print('-- Intro --')
+        print(intro)
+        print('-- Director --')
+        print(director)
+        print('-- Score : ', score)
+        print('\n\n')
     
-     
+
+def calculate_correlation(query_words, document_row):
+    
+    ''' The idea here is that each field might be more relevant 
+        while differentiating by keywords: looking a specific director
+        might allow for the 'director' field to be more important than
+        the intro.
+        
+        Each field has a weight of 1/(num of words in field) * occurrences of term.
+        The sum of them creates the correlation value between the query
+        and the text '''
+
+    fields = document_row.iloc[0, 1:13].values
+    field_scores = []
+
+    for field in fields:
+        score = 0
+        
+        ''' Some field do not contain values, just put a weight = 0 to ignore it later on '''
+        if str(field) != 'nan':
+            field_preprocessed = preprocess(field)
+            
+            if len(field_preprocessed):
+                score = 1 / len(field_preprocessed)
+                
+                for word in query_words:
+                    score = score * field_preprocessed.count(word)
+        
+        field_scores.append(score)
+        
+    
+    return sum(field_scores), field_scores
+
+
+def use_search_engine_3_custom_correlation():
+        
+    films = pd.read_csv('./dataset/film_info_dataset.tsv', sep='\t')
+    inverted_index = pd.read_csv('./dataset/inverted_index.csv', sep='\t')
+    vocabulary = pd.read_csv('./dataset/term_dictionary.csv', sep='\t')
+    
+    films = films.drop('Unnamed: 0', axis=1)
+    inverted_index = inverted_index.drop('Unnamed: 0', axis=1)
+    vocabulary = vocabulary.drop('Unnamed: 0', axis=1)
+    
+        
+    k = 15 #Number of top K results
+    docs = []
+    heap = []
+    query_terms = []
+    query='\t'
+    while query != '':
+        query = str(input('Insert new query terms here: '))
+        query_terms.extend(preprocess(query))
+        query_terms_no_dup = list(dict.fromkeys(query_terms))
+        
+        
+        for term in query_terms_no_dup: 
+            if term in vocabulary.term.values:
+                term_id = vocabulary.term_id[vocabulary.term == term].values[0]
+                docs_for_term = eval(inverted_index.document_id[inverted_index.term_id == term_id].values[0])
+                
+                docs_for_term = list(dict.fromkeys(docs_for_term))
+                if docs == []:
+                    docs.extend(docs_for_term)
+                else:
+                    docs = [d for d in docs if d in docs_for_term]
+        
+        print('Found %d documents containing the terms in the query. ' % len(docs))
+        
+        if len(docs) > 0:
+        
+            res = []
+            for doc_id in docs:
+                query_words = query_terms_no_dup
+            
+                doc_row = films[films.index == doc_id]
+            
+                corr_coefficient, scores = calculate_correlation(query_words, doc_row)
+                
+                res.append((doc_id, corr_coefficient))    
+            # Push to heap
+        
+            for r in res:
+                heapq.heappush(heap, r)
+        
+            heap = heapq.nlargest(k, heap, key=lambda x : x[1])            
+            film_res = [heapq.heappop(heap) for i in range(len(heap))]
+            
+            want_to_see = str(input('Do you want to see the results (y/n)? '))
+            if want_to_see == 'y':
+                for r in film_res:
+                    doc_id = r[0]
+                    score = r[1]
+                    
+                    title = films.title[films.index == doc_id].values[0]
+                    intro = films.intro[films.index == doc_id].values[0]
+                    director = films.director[films.index == doc_id].values[0]
+            
+                    if str(intro) == 'nan':
+                        intro = 'No intro available'
+                    if str(director) == 'nan':
+                        intro = 'No director info available'
+                    
+                    
+                    print('---------------------------------------')
+                    print(title)
+                    print('-- Intro --')
+                    print(intro)
+                    print('-- Director --')
+                    print(director)
+                    print('-- Score : ', score)
+                    print('\n\n')
+        else:
+            print('No results found, maybe the query was too specific.')
+            query_terms = []
+            print('The query has been reset to empty.\n')
+            
+
+    
+if __name__ == '__main__':
+    
+    which_search_engine = 1
+    
+    while which_search_engine in [1,2,3]:
+        which_search_engine = int(input('Please choose a search engine (1, 2, 3): '))
+        
+        if which_search_engine == 1:
+            use_search_engine_one()
+        if which_search_engine == 2:
+            use_search_engine_two()
+        if which_search_engine == 3:
+            use_search_engine_3_custom_correlation()
+       
     
     
     
-
-
-
-
-
-
-
-
-
-
 
 
 

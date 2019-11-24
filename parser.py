@@ -9,6 +9,9 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import os
 
+''' This file when executed parses all the html files ranging from 0.html to 9999.html
+    to extract all the information needed. '''
+
 def join_list_strings(list_strings):
     res = ''
     for string in list_strings:

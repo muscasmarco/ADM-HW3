@@ -11,7 +11,8 @@ from index_utils import preprocess
 dataset_raw = pd.read_csv('./dataset/film_info_dataset.tsv', sep='\t')
 dataset_raw = dataset_raw.drop(columns='Unnamed: 0')
 
-# Initializing nltk lists to filter
+''' This file, when executed allows for the creation of the inverted indexes, 
+    since there are 2 types of indexes, some fields might be ignored (as suggested by the comments) '''
 
 inverted_index_tmp = dict()
 print('Building the inverted index..')

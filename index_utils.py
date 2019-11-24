@@ -10,7 +10,10 @@ from nltk.tokenize import RegexpTokenizer
 from nltk.stem import LancasterStemmer
 from nltk.corpus import stopwords
 import pandas as pd
+from index import compute_tfidf
 
+''' The preprocess function uses some tools from the nltk library to tokenize
+    a raw string, so that each token is not a stop word and stemmed. '''
 def preprocess(raw_string):
     stop_words = set(stopwords.words('english')) 
     res = ''
@@ -44,6 +47,9 @@ def preprocess(raw_string):
         res = ['NA']
         
     return res
+    
+''' This is an auxiliary index file used when calculating the tf-idf. As it 
+    requires the length of the analyzed text (which is an expensive operation). '''
     
 def count_words_dataset():
     
@@ -83,6 +89,8 @@ def count_words_dataset():
     doc_num_words.to_csv(path_or_buf=dataset_csv_path, sep=dataset_csv_separator, na_rep=dataset_csv_na_rep)    
     print('Done')
     
+''' This function is used to create the index like term_id:[ (doc_1, tf-idf1), ...] '''
+
 def create_tfidf_dataset():
     ''' Loading the datasets '''
     vocabulary = pd.read_csv('./dataset/term_dictionary.csv', sep='\t')

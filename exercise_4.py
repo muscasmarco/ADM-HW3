@@ -23,7 +23,7 @@ Created on Sun Nov 24 01:16:07 2019
 
 
 #instr = 'DATAMININGSAPIENZA'
-instr = str(input('Inserire stringa: '))
+instr = str(input('Insert string: '))
 if len(instr) < 2:
     
     ans = len(instr)
