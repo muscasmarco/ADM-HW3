@@ -5,7 +5,7 @@ Created on Wed Nov 20 20:31:02 2019
 
 @author: marco
 """
-from index_utils import preprocess
+from utils import preprocess
 import pandas as pd
 import numpy as np
 import heapq
@@ -216,6 +216,10 @@ def use_search_engine_3_custom_correlation():
     query='\t'
     while query != '':
         query = str(input('Insert new query terms here: '))
+        
+        if query == '':
+            break
+        
         query_terms.extend(preprocess(query))
         query_terms_no_dup = list(dict.fromkeys(query_terms))
         

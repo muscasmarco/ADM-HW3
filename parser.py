@@ -26,7 +26,7 @@ cols = ['title','intro','plot', 'film_name', 'director', 'producer',
 
 ds = pd.DataFrame(columns=cols)
 
-for i in range(10001):
+for i in range(10000):
     html_path = str('%s/%d.html' %(pages_root_path, i))
     
     if os.path.exists(html_path):

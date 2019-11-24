@@ -6,7 +6,7 @@ Created on Wed Nov 20 13:48:45 2019
 @author: marco
 """
 import pandas as pd
-from index_utils import preprocess
+from utils import preprocess
 
 dataset_raw = pd.read_csv('./dataset/film_info_dataset.tsv', sep='\t')
 dataset_raw = dataset_raw.drop(columns='Unnamed: 0')
