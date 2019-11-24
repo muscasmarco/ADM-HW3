@@ -8,7 +8,9 @@ Created on Wed Nov 20 20:31:02 2019
 from index_utils import preprocess
 import pandas as pd
 import numpy as np
-'''
+from sklearn.metrics.pairwise import cosine_similarity
+from numpy.linalg import norm
+
 def use_search_engine_one():
     
     print('Loading datasets...')
@@ -50,7 +52,7 @@ def use_search_engine_one():
             print(title)
     else: 
         print('No results for your search! :(')
-'''
+
 def compute_tfidf(term_id, document_id, inverted_index_dict_with_duplicates, inverted_index_dict_no_duplicates, num_words):
     
     num_occurrences = len(inverted_index_dict_no_duplicates[term_id])
@@ -68,74 +70,89 @@ def compute_tfidf(term_id, document_id, inverted_index_dict_with_duplicates, inv
 
 ''' Datasets 2 '''
 
-''' Loading the datasets '''
-vocabulary = pd.read_csv('./dataset/term_dictionary.csv', sep='\t')
-inverted_index_ds = pd.read_csv('./dataset/inverted_index.csv', sep='\t')
-film_info = pd.read_csv('./dataset/film_info_dataset.tsv', sep='\t')
-num_words_dataset = pd.read_csv('./dataset/document_num_words.csv', sep='\t')
-''' Dropping Unnamed: 0 columns as it is not necessary '''
-
-vocabulary = vocabulary.drop('Unnamed: 0', axis=1)
-inverted_index_ds = inverted_index_ds.drop('Unnamed: 0', axis=1)
-film_info = film_info.drop('Unnamed: 0', axis=1)
-num_words_dataset = num_words_dataset.drop('Unnamed: 0', axis=1)
-
-
-''' Converting dataframe into other data structures to optimize 
-    running time '''
-inverted_index_dict = inverted_index_ds.to_dict()['document_id']   
-inverted_index_dict_with_duplicates = {key:list(eval(inverted_index_dict[key])) for key in inverted_index_dict.keys()}
-inverted_index_dict_no_duplicates = {key:list(dict.fromkeys(inverted_index_dict_with_duplicates[key])) for key in inverted_index_dict_with_duplicates.keys()}
-num_words_dict = num_words_dataset.to_dict()['num_words']
-
-
-
-cols = ['term_id', 'document_info']
-tfidf_dataset = pd.DataFrame(columns=cols)
-
-for term_id in inverted_index_dict.keys():
+def compute_cosine_similarities(query_elements):
     
-    if term_id % 100 == 0:
-        print(term_id/len(inverted_index_dict.keys()) * 100, '%')
+    print('Computing cosine similarities.')
+    print('Loading datasets')
     
-    documents = inverted_index_dict_no_duplicates[term_id]
+    vocabulary = pd.read_csv('./dataset/term_dictionary.csv', sep='\t')
+    tfidf_index = pd.read_csv('./dataset/tfidf_inverted_index.csv', sep='\t')
+    vocabulary = vocabulary.drop('Unnamed: 0', axis=1)
+    tfidf_index = tfidf_index.drop('Unnamed: 0', axis=1)
+    print('Loading datasets done.')
     
-    data_list = []
+    # Compute tfidf for the query elements
+    query_len = len(query_elements)
+    query_scores = []
     
-    for doc_id in documents:
-        tfidf_score = compute_tfidf(term_id, doc_id, inverted_index_dict_with_duplicates, inverted_index_dict_no_duplicates, num_words_dict[doc_id])
-        document_data = (doc_id, tfidf_score)
-        data_list.append(document_data)
+    documents = []
+    # Calculating tf-idf score with respect to the query
+    for word in query_elements:
+        if word in vocabulary['term'].values:      
+            word_id = vocabulary.term_id[vocabulary.term == word].values[0] # First, find the term_id
+            word_occurrences = query_elements.count(word) # Number of distinct instances of same term in query
+            docs_containing_term = tfidf_index.document_info[tfidf_index.term_id == word_id].values[0] 
+            documents.append(docs_containing_term) # It will be useful in the next step
+            tf = word_occurrences/query_len    
+            idf = np.log(10000/len(docs_containing_term))         
+            tfidf = tf * idf
+            query_scores.append([word_id,tfidf])
+        else:
+            query_scores.append([word_id,0])
+    
+    # Creating the tfidf for each term containing (or not) each term in the query
+    docs_scores = {}
+    for i in range(len(query_scores)):
+        term_id = query_scores[i][0]
         
-    tfidf_dataset = tfidf_dataset.append(pd.DataFrame([[term_id, data_list]], columns=cols), sort=False)
+        for document in list(eval(tfidf_index.document_info[tfidf_index.term_id == term_id].values[0])):
+            document_id = document[0]
+            # Initialize score vector
+            if document_id not in docs_scores.keys():
+                docs_scores[document_id] = np.zeros(query_len)
+            
+            docs_scores[document_id][i] = document[1] # Registering the tfidf of the document
+        
+        
+    resulting_docs = []
+    # Compute the cosine similarity for each combination query_score, document_score:
+    for key in docs_scores.keys():
+        query_score = [qs[1] for qs in query_scores]
+        doc_score = docs_scores[key]
+        
+        dot_prod = np.dot(query_score, doc_score)
+        norm_prod = np.linalg.norm(query_score,ord=2) * np.linalg.norm(doc_score, ord=2)
+        cos_similiarity = abs(dot_prod/norm_prod)
+        resulting_docs.append([key, cos_similiarity])
+ 
+    resulting_docs.sort(key=lambda x:x[1], reverse=False)
+    
+    return resulting_docs
 
 
+#def use_search_engine_two():
+    
+''' Loading datasets '''
 
+def use_search_engine_two():
 
-dataset_csv_separator = '\t' # Separator between columns in the file
-dataset_csv_na_rep = 'NA' # Default null value representation
-dataset_csv_path = './dataset/tfidf_inverted_index.csv'
-tfidf_dataset.to_csv(path_or_buf=dataset_csv_path, sep=dataset_csv_separator, na_rep=dataset_csv_na_rep)    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    film_ds = pd.read_csv('./dataset/film_info_dataset.tsv', sep='\t')
+    film_ds = film_ds.drop('Unnamed: 0', axis=1)
+    
+    query_terms = preprocess(str(input('Insert your query: ')))
+    scores = compute_cosine_similarities(query_terms)
+    
+    for score in scores[:10]:
+        doc_id = score[0]
+        
+        title = film_ds.title[film_ds.index == doc_id].values[0]
+        director = film_ds.director[film_ds.index == doc_id].values[0]
+        print(doc_id,' ', title, ' ', director)
+    
+     
+    
+    
+    
 
 
 
